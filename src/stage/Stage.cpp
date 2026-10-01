@@ -412,10 +412,9 @@ static void swallow() {
             fx::burst(fx::SPARK, x, y, 10, 40, RED);
             call("CHOMP!", fx::B_RED, 50);
             snd(Sfx::Chomp);
-            zoomTo = 5;
             break;
         case 1:
-            if (ride.t < 16 || board::zoom != 5) break;
+            if (ride.t < 16) break;
             ride.phase = 2; ride.t = 0;
             ride.T = (uint8_t)(linkLength(ride.link) * (quick() ? 3 : 5) / 4 + 10);
             numTo[p] = l.to;                             // the counter tumbles down
@@ -425,6 +424,7 @@ static void swallow() {
             if (ride.t % 3 == 0) blip(2600 - 1700 * ride.t / ride.T, 24);
             if (ride.t < ride.T) break;
             ride.phase = 3; ride.t = 0;
+            focus = l.to;
             memset(&mv, 0, sizeof mv);                   // out, head over heels
             mv.seat = p; mv.from = mv.to = l.to; mv.on = mv.jump = 1;
             tokenScreen(p, x, y);
@@ -434,11 +434,16 @@ static void swallow() {
             fx::shake(3, 1);
             snd(Sfx::Spit);
             break;
+        case 3:
+            // Down on the board again: now the camera pulls back, to show
+            // how far that was.
+            if (mv.on || ride.t < 30) break;
+            ride.phase = 4; ride.t = 0;
+            zoomTo = 5;
+            break;
         default:
-            if (mv.on || ride.t < (quick() ? 26 : 34)) break;
+            if (ride.t < (quick() ? 8 : 40) || board::zoom != 5) break;
             ride.on = 0;
-            focus = l.to;
-            zoomTo = restZoom();
             break;
     }
 }
@@ -570,6 +575,12 @@ void update() {
         centre(st.pos[turn], x, y);
         centre(via, ax, ay);
         aimAt((x + ax) / 2, (y + ay) / 2);
+    } else if (ride.on && ride.kind == SNAKE && ride.phase == 2) {
+        // Down the snake with whoever is inside it.
+        int x, y, ax, ay, e = fx::ease(fx::IN_OUT, ride.t, ride.T);
+        centre(LINK[ride.link].from, x, y);
+        centre(LINK[ride.link].to, ax, ay);
+        aimAt(x + (((ax - x) * e) >> 8), y + (((ay - y) * e) >> 8));
     } else aimSquare(focus);
     if (stepOut) snapCamera();
     stepCamera();
@@ -765,15 +776,29 @@ static void drawDice(uint32_t frame) {
     }
 }
 
-// The squares the dice offer: where the die chosen leads, and the other.
+// The squares the dice offer: where the die chosen leads (in red, flashing,
+// if that is into a snake), an arc of dots marching there from your token,
+// and the other die's square.
 static void drawMarks(uint32_t frame) {
     if (!barOn || diceT <= diceFrames() || diceA == diceB || mv.on || sPos[turn] == NOBODY) return;
     for (uint8_t k = 0; k < 2; k++) {
         uint8_t via, to = landing(sPos[turn], k ? diceB : diceA, &via);
-        bool on = k == sel;
-        if (!on) { mark(via, SILVER); continue; }
-        mark(via, (frame & 8) ? WHITE : FX_A);
-        if (to != via) mark(to, FX_A);
+        if (k != sel) { mark(via, SILVER); continue; }
+        bool snake = to < via, blink = (frame & 8) != 0;
+        uint8_t c = snake ? (blink ? RED : WHITE) : (blink ? WHITE : FX_A);
+        mark(via, c);
+        if (to != via) mark(to, snake ? c : FX_A);
+        int ax, ay, bx, by;
+        centre(sPos[turn], ax, ay);
+        centre(via, bx, by);
+        ax = sx(ax); ay = sy(ay); bx = sx(bx); by = sy(by);
+        int n = big() ? 16 : 10, d = big() ? 2 : 1, h = zoomed(11);
+        for (int i = 1; i < n; i++) {
+            if ((i + (int)(frame >> 3)) & 1) continue;
+            int x = ax + (bx - ax) * i / n, y = ay + (by - ay) * i / n - 4 * h * i * (n - i) / (n * n);
+            gfx_fillRect(x - d + 1, y - d + 1, 2 * d, 2 * d, INK);
+            gfx_fillRect(x - d, y - d, 2 * d - 1 + (d & 1), 2 * d - 1 + (d & 1), snake ? RED : c);
+        }
     }
 }
 

@@ -126,18 +126,14 @@ static void feltBackdrop() {
     gfx_rect(2, 2, 124, 124, GOLD);
 }
 
-// Big lettering in PPOT's font with a gradient, outline and shadow. The top
-// rows are FX_B, so the palette makes it shimmer. wave: the letters ride a
-// sine that travels along the word (the title slithers).
-static void title35(const char *text, int y, uint8_t scale = 3, int wave = -1) {
-    int w = text35WidthScaled(text, scale), h = 6 * scale;
-    int8_t dy[12];
-    for (int k = 0; k < 12; k++) dy[k] = wave < 0 ? 0 : (int8_t)(((fx::isin(wave * 6 + k * 40) * 3) >> 8) + 3);
-    Mask m = maskBegin(w, h + 6);
-    maskText35(m, 0, 0, text, scale, dy);
-    uint8_t ramp[32];
-    int top = wave < 0 ? 0 : 3;                  // (the wave's middle)
-    for (int i = 0; i < 32; i++) ramp[i] = i < scale + top ? FX_B : (i < 4 * scale + 1 + top ? GOLD : WOOD);
+// Big lettering in PPOT's font (3x) with a gradient, outline and shadow. The
+// top rows are FX_B, so the palette makes it shimmer.
+static void title35(const char *text, int y) {
+    int w = text35WidthScaled(text, 3);
+    Mask m = maskBegin(w, 18);                   // just the lettering's bytes
+    maskText35(m, 0, 0, text, 3);
+    uint8_t ramp[20];
+    for (int i = 0; i < 20; i++) ramp[i] = i < 3 ? FX_B : (i < 13 ? GOLD : WOOD);
     maskDraw(m, 64 - w / 2, y, INK, WINE, ramp);
 }
 
@@ -213,12 +209,23 @@ static void titleUpdate() {
     if (phase() == P_OVER && stage::overShown()) startDemo();
 }
 
+// The game's own lettering (tools/art: LOGO_*), after CHBlackjack's: gold
+// over wood, outlined, with a shadow. Its top rows are FX_B, so the palette
+// makes it shimmer.
+static void logo(const uint8_t *bits, uint8_t w, uint8_t h, int y) {
+    Mask m = maskBegin(w, h);
+    maskBlit1(m, bits, w, h);
+    uint8_t ramp[LOGO_SNAKES_H];
+    for (int i = 0; i < h; i++) ramp[i] = i * 14 < 3 * h ? FX_B : (i * 14 < 10 * h ? GOLD : WOOD);
+    maskDraw(m, 64 - w / 2, y, INK, WINE, ramp);
+}
+
 static void titleRender(uint32_t frame) {
     uint8_t items[4], n = titleItems(items);
     stage::render(frame, frame);
-    dither(0, 0, 128, 44, INK, 0);
-    title35("SNAKES", 2, 4, (int)frame);
-    title35("AND LADDERS", 29, 2);
+    dither(0, 0, 128, 50, INK, 0);
+    logo(LOGO_SNAKES, LOGO_SNAKES_W, LOGO_SNAKES_H, 2);
+    logo(LOGO_LADDERS, LOGO_LADDERS_W, LOGO_LADDERS_H, 33);
     int y0 = 128 - n * 13 - 1;
     dither(0, y0 - 5, 128, 128 - y0 + 5, INK, 1);
     for (uint8_t i = 0; i < n; i++) menuItem(y0 + i * 13, ITEM[items[i]], i == sel, frame);

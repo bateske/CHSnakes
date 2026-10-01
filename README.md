@@ -69,7 +69,8 @@ Everyone starts on square 1. First to 100 wins.
 
 * **Two dice, and you pick which one to move by.** The bar at the foot of
   the screen shows both and what each would do - TO 47, UP TO 59, DOWN TO
-  5, BUMP P2, WIN! - and the squares light up on the board.
+  5, BUMP P2, WIN! - and on the board an arc of dots marches from your
+  token to the square, which flashes red if a snake is waiting there.
 * **Doubles** move and roll again (two extra rolls at most).
 * **Land on a rival and it is bumped** straight down a row (and takes
   whatever ladder or snake it drops onto). Square 1 is safe.

@@ -34,7 +34,9 @@ TRANSPARENT = 16
 # The table the game indexes: tokens by seat (see src/stage/Stage.cpp).
 TOKENS = ["TOKEN_CHERRIES", "TOKEN_BANANA", "TOKEN_APPLE", "TOKEN_STRAWBERRY"]
 # Stored a bit a pixel (rows, MSB first), not as a colour sprite.
-MONO = []
+MONO = ["LOGO_SNAKES", "LOGO_LADDERS"]
+# ... and of those, drawn at half size: each pixel becomes four.
+DOUBLED = ["LOGO_SNAKES"]
 
 
 def rgb(i):
@@ -157,6 +159,8 @@ def main():
     decls, defs = [], []
     total = 0
     for name, img in sprites.items():
+        if name in DOUBLED:
+            img = [[v for v in row for _ in (0, 1)] for row in img for _ in (0, 1)]
         data = pack_rows1(img) if name in MONO else pack_span4(img)
         defs.append(c_array(name, data))
         decls.append(f"extern const uint8_t {name}[{len(data)}];")
