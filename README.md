@@ -8,13 +8,18 @@ of [CHBlackjack](https://github.com/bateske/CHBlackjack),
 wooden frame, dice that tumble in and knock the table, a fruit that hops
 square to square with the camera after it, ladders whose rungs light as you
 climb, and eight wriggling snakes that see you coming, open their jaws,
-swallow you whole and spit you out at the tail.
+swallow you whole - the camera rides down inside with you - and spit you
+out at the tail.
 
-![a snake's meal](docs/snake.gif)
+![gameplay](docs/gameplay.gif)
 
-| Title | A ladder | ARCADE: pick a die, bump a rival |
+*ARCADE against a CPU: the ladder at 3 taken over a plain 6, the snake at 26
+seen (red) and dodged, the CPU bumped off 32 - and its doubles walking it
+into the snake at 34.*
+
+| A snake's meal | A ladder | Title |
 |---|---|---|
-| ![title](docs/title.gif) | ![ladder](docs/ladder.gif) | ![arcade](docs/arcade.gif) |
+| ![snake](docs/snake.gif) | ![ladder](docs/ladder.gif) | ![title](docs/title.gif) |
 
 (Captured from the PC simulator in `tools/chsim`, which runs the real game
 and graphics code and renders what the device shows.)
@@ -127,7 +132,7 @@ C++ compiler (zig, clang++ or g++ on the PATH, `pip install ziglang`, or
   buttons, `waitturn` until the game wants you, `rec` a GIF, and `say`
   debug commands: `G` a new game, `D` the next dice, `M` to put a token on
   a square (the list is in `src/states/Screens.cpp`). `cal` and `perf`
-  estimate the device's render time.
+  estimate the device's render time. `gameplay.txt` is the clip at the top.
 * `python tools/device.py upload [--debug]` - build and upload (`--debug`
   adds the serial protocol for screenshots, injected input and lockstep;
   it leaves out the options screen and saving).

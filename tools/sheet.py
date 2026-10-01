@@ -18,19 +18,17 @@ What the game expects of each:
   TOKEN_*   the four fruit, one per seat. They stand on their bottom row,
             centred. Drawn at the board's resting size; the camera doubles
             them when it whips in.
-  HOUSE,    stand on a street's colour band, up to four houses side by side
-  HOTEL     (they overlap at the resting size).
-  CARD_DECK the two card stacks on the felt. GOLD is the back's colour: the
-            Community Chest's deck is the same art with GOLD turned BLUE.
   DIE       a die with no pips: the game draws them on top, turning with it.
             Keep it 13 x 13.
-  ICON_*    flat decals on the special tiles, centred. ICON_JAIL with its
-            SILVER turned RED is Go To Jail.
+  SNAKE_HEAD, SNAKE_HEAD_OPEN   a snake's head from above, looking up the
+            screen; FELT_LT and FELT become each snake's two colours. 9 x 9.
+  CROWN     on square 100.
   HAND      the glove; a CPU's has GOLD and WOOD (the cuff) turned RED and
             WINE. The fingertip is the middle of the bottom row.
-  LOGO      the title's lettering, in any one colour (only its shape is
-            kept): the game adds the gold-to-wood fill, outline and shadow,
-            and prints it on the board's plaque. Up to 120 x 16.
+  LOGO_*    the title's lettering, in any one colour (only its shape is
+            kept): the game adds the gold-to-wood fill, outline and shadow.
+            LOGO_SNAKES is drawn at half size (the game doubles it): up to
+            62 x 14.
 
 Palette: the swatch lists the 16 colours. FX_A and FX_B are animated in the
 game (placeholders here; FX_B cannot be used in sprites at all - it is the
