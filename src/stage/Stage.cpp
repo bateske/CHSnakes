@@ -60,6 +60,7 @@ enum : uint8_t { LADDER, SNAKE };
 struct Ride { uint8_t on, kind, link, seat, phase, t, T; };
 static Ride ride;
 static uint8_t snap[LINKS - LADDERS];       // jaws snapping at a token going by
+static uint8_t boomT, boomAt;               // the bite's blast: two rings of chunks flying out from a square
 
 // The plate's words: two parts, each its own colour.
 static char plText[28];
@@ -217,6 +218,7 @@ static void sync() {
     memset(&mv, 0, sizeof mv);
     memset(&ride, 0, sizeof ride);
     memset(snap, 0, sizeof snap);
+    boomT = 0;
     fx::clear();
     diceT = holdT = pickT = plT = overT = 0;
     over = overDone = glove = barOn = wide = false;
@@ -341,7 +343,8 @@ void begin() {}
 // Per tick
 // ---------------------------------------------------------------------------
 
-// Up a ladder: a flourish at its foot, the climb rung by rung, the top.
+// Up a ladder: a flourish at its foot, the climb rung by rung with the
+// camera alongside, the top.
 static void climb() {
     const Link &l = LINK[ride.link];
     uint8_t p = ride.seat;
@@ -353,9 +356,8 @@ static void climb() {
                 tokenScreen(p, x, y);
                 fx::burst(fx::STAR, x, y, 10, 36, GOLD);
                 snd(Sfx::Ladder);
-                zoomTo = 5;
             }
-            if (ride.t < 12 || board::zoom != 5) break;
+            if (ride.t < 12) break;
             ride.phase = 1; ride.t = 0;
             ride.T = (uint8_t)(linkLength(ride.link) * (quick() ? 3 : 5) / 4);
             sPos[p] = NOBODY;
@@ -368,6 +370,7 @@ static void climb() {
             sPos[p] = l.to;
             sNum[p] = numTo[p] = l.to;
             hudFlash[p] = 16;
+            focus = l.to;
             tokenScreen(p, x, y);
             fmtInt(fmtStr(buf, "+"), l.to - l.from);
             note(buf, x, y - 8, GOLD);
@@ -380,11 +383,15 @@ static void climb() {
                 ride.t = (uint8_t)(-30);                 // a moment longer
             }
             break;
+        case 2:
+            // At the top: now the camera pulls back, to show how far that was.
+            if ((int8_t)ride.t < (quick() ? 8 : 24)) break;
+            ride.phase = 3; ride.t = 0;
+            zoomTo = 5;
+            break;
         default:
-            if ((int8_t)ride.t < (quick() ? 8 : 18)) break;
+            if (ride.t < (quick() ? 8 : 40) || board::zoom != 5) break;
             ride.on = 0;
-            focus = l.to;
-            zoomTo = restZoom();
             break;
     }
 }
@@ -407,9 +414,14 @@ static void swallow() {
             ride.phase = 1; ride.t = 0;
             tokenScreen(p, x, y);
             sPos[p] = NOBODY;
-            fx::shake(6, 2);
+            // The bite: everything goes off at once.
+            boomT = 1; boomAt = l.from;
+            fx::shake(8, 3);
             pal::flash(light, 0xA12, 4);
-            fx::burst(fx::SPARK, x, y, 10, 40, RED);
+            fx::burst(fx::SPARK, x, y, 16, 70, RED);
+            fx::burst(fx::STAR, x, y, 12, 48, WHITE);
+            fx::burst(fx::SPARK, x, y, 10, 30, SEAT_COLOUR[p]);
+            fx::burst(fx::DUST, x, y, 8, 44, WHITE);
             call("CHOMP!", fx::B_RED, 50);
             snd(Sfx::Chomp);
             break;
@@ -480,6 +492,7 @@ void update() {
     if (plT && plT < 8) plT++;
     if (tapT && ++tapT > 12) tapT = 0;
     for (auto &s : snap) if (s) s--;
+    if (boomT && ++boomT > 22) boomT = 0;
     for (uint8_t p = 0; p < SEATS; p++) {
         if (hudFlash[p]) hudFlash[p]--;
         int d = numTo[p] - sNum[p];
@@ -575,9 +588,9 @@ void update() {
         centre(st.pos[turn], x, y);
         centre(via, ax, ay);
         aimAt((x + ax) / 2, (y + ay) / 2);
-    } else if (ride.on && ride.kind == SNAKE && ride.phase == 2) {
-        // Down the snake with whoever is inside it.
-        int x, y, ax, ay, e = fx::ease(fx::IN_OUT, ride.t, ride.T);
+    } else if (ride.on && ride.phase == (ride.kind == SNAKE ? 2 : 1)) {
+        // Down the snake with whoever is inside it, or up the ladder.
+        int x, y, ax, ay, e = ride.kind == SNAKE ? fx::ease(fx::IN_OUT, ride.t, ride.T) : ride.t * 256 / ride.T;
         centre(LINK[ride.link].from, x, y);
         centre(LINK[ride.link].to, ax, ay);
         aimAt(x + (((ax - x) * e) >> 8), y + (((ay - y) * e) >> 8));
@@ -811,7 +824,7 @@ static uint32_t signature(uint32_t frame, uint32_t ui) {
     bool rolling = false;
     for (uint8_t p = 0; p < SEATS; p++) rolling |= sNum[p] != numTo[p] || hudFlash[p];
     for (uint8_t s : snap) rolling |= s != 0;
-    if (fx::activeRows(lo, hi) || mv.on || rolling || ride.on || (over && overT) || tapT ||
+    if (fx::activeRows(lo, hi) || mv.on || rolling || ride.on || boomT || (over && overT) || tapT ||
         (diceT && diceT <= diceFrames()) || (plT && plT < 8))
         return frame;
     if (cx16 != (int32_t)aimX << 4 || cy16 != (int32_t)aimY << 4) return frame;
@@ -844,6 +857,18 @@ bool render(uint32_t frame, uint32_t ui) {
         drawDice(frame);
     }
     dbg::prof(2);
+    if (boomT) {
+        // Chunks in two rings, the inner one slower and turned half a step.
+        static const uint8_t HOT[4] = {RED, WHITE, GOLD, WHITE};
+        int x, y, e = fx::ease(fx::OUT_CUBIC, boomT, 22);
+        centre(boomAt, x, y);
+        x = sx(x); y = sy(y);
+        for (int i = 0; i < 24; i++) {
+            int a = i * 256 / 12 + (i < 12 ? 0 : 11), r = (zoomed(i < 12 ? 34 : 20) * e) >> 8;
+            int d = sized(boomT < 8 ? 3 : boomT < 16 ? 2 : 1);
+            gfx_fillRect(x + ((fx::isin(a + 64) * r) >> 8) - d / 2, y + ((fx::isin(a) * r) >> 8) - d / 2, d, d, HOT[(i + boomT / 2) & 3]);
+        }
+    }
     fx::drawParticles((uint8_t)(board::zoom * 2 / 5));
     fx::drawFloats();
     fx::drawBanner();

@@ -7,7 +7,7 @@ of [CHBlackjack](https://github.com/bateske/CHBlackjack),
 [CHBoardwalk](https://github.com/bateske/CHBoardwalk): a felt board in a
 wooden frame, dice that tumble in and knock the table, a fruit that hops
 square to square with the camera after it, ladders whose rungs light as you
-climb, and eight wriggling snakes that see you coming, open their jaws,
+climb with the camera alongside, and eight wriggling snakes that see you coming, open their jaws,
 swallow you whole - the camera rides down inside with you - and spit you
 out at the tail.
 
